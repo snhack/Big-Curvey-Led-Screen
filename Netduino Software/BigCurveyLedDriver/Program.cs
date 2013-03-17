@@ -14,13 +14,13 @@ namespace BigCurveyLedDriver
 		public static void Main()
 		{
 			var rows = new OutputPort[7]; // 7 rows of LEDs
-			rows[0] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di20, true);
-			rows[1] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di21, true);
-			rows[2] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di22, true);
-			rows[3] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di23, true);
-			rows[4] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di24, true);
-			rows[5] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di25, true);
-			rows[6] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di26, true);
+			rows[0] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di20, false);
+			rows[1] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di21, false);
+			rows[2] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di22, false);
+			rows[3] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di23, false);
+			rows[4] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di24, false);
+			rows[5] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di25, false);
+			rows[6] = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di26, false);
 
 			var sdata = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di30, false);
 			var sclock = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di31, false); // Clocks data in on rising edge
@@ -49,23 +49,26 @@ namespace BigCurveyLedDriver
 			{
 				for (int row = 0; row < 7; row++)
 				{
+					// Clock values in for each of the 32 LEDS
+					for (var i = 0; i < 32; i++)
+					{
+						sclock.Write(false);
+						if (pattern[row][31 - i] == '1')
+							sdata.Write(true); // on
+						else
+							sdata.Write(false); // off
+						sclock.Write(true);
+					}
+
+					sclock.Write(false); // needed?
+
+					// Maybe: Thread.Sleep(1);
+					// Turn off output before we latch in the next set of values
+					outputEnable.Write(true);
+
 					// Disable all rows
 					for (int j = 0; j < 7; j++)
 						rows[j].Write(false);
-
-					//for (var k = 0; k<2; k++)
-					// Clock values in for each of the 32 LEDS
-						for (var i = 0; i < 32; i++)
-						{
-							sclock.Write(false);
-							if (pattern[row][31 - i] == '1')
-								sdata.Write(true); // on
-							else
-								sdata.Write(false); // off
-							sclock.Write(true);
-						}
-
-					sclock.Write(false); // needed?
 
 					// Latch the values
 					latchEnable.Write(true);
@@ -74,12 +77,8 @@ namespace BigCurveyLedDriver
 					// Enable the row we want (each in turn 0...7)
 					rows[row].Write(true);
 
-					// Turn on the outputs for a period of time
+					// Turn on the outputs for a period of time (while we clock in the next set)netmf
 					outputEnable.Write(false);
-					Thread.Sleep(1);
-					// Turn off again to clock in the next set of values
-					outputEnable.Write(true);
-					//Thread.Sleep(1);
 				}
 			}
 		}
